@@ -1,0 +1,356 @@
+
+#define BLYNK_PRINT Serial
+#include <ESP8266WiFi.h>
+#include <BlynkSimpleEsp8266.h>
+
+#define pUL D1
+#define dIR D2
+#define eMA D5
+#define pumpPIN1 D6
+#define pumpPIN2 D7
+
+#define BLYNK_AUTH_TOKEN "rulFzUePQILZM2YPX0VhE2tz40XaPOzv"
+
+char auth[] = "rulFzUePQILZM2YPX0VhE2tz40XaPOzv";
+char ssid[] = "PANNAWIFI";
+char pass[] = "PANNA2932";
+
+// Distance (mm)
+int P0 = 0;
+int P1 = 60;
+int P2 = 120;
+int P3 = 179;
+int P4 = 239;
+int P5 = 300;
+
+int SwitchOnOff;
+
+int CurrentPosition;
+int WaterLv1;
+int WaterLv2;
+int WaterLv3;
+int WaterLv4;
+int WaterLv5;
+int WaterLv6;
+int WaterLv7;
+int WaterLv8;
+int WaterLv9;
+int WaterLv10;
+
+void setup() {
+
+  // put your setup code here, to run once:
+
+
+  Serial.begin(19200);
+  Serial.println(" Hello OraCle ");
+  Blynk.begin(auth, ssid, pass, "blynk.cloud", 80);
+
+  wdt_enable(WDTO_1S);
+
+  pinMode(pUL, OUTPUT);
+  pinMode(dIR, OUTPUT);
+  //pinMode (eMA,OUTPUT);
+
+  pinMode(pumpPIN1, OUTPUT);
+  pinMode(pumpPIN2, OUTPUT);
+  digitalWrite(pumpPIN1, HIGH);
+  digitalWrite(pumpPIN2, HIGH);
+
+  Reset();
+}
+
+void loop() {
+  Blynk.run();
+  if (SwitchOnOff == 1) {
+    if (SwitchOnOff > 0 && (WaterLv1 > 0 || WaterLv2 > 0)) {
+      // Move To P1
+
+      Switch_lock();
+      CurrentPosition = P1 - CurrentPosition;
+      Serial.print("Move To ");
+      Serial.print(" -- P1 -- ");
+      Serial.println(CurrentPosition);
+      delay(500);
+      FW(CurrentPosition);
+      delay(500);
+      CurrentPosition = P1;
+      OPENPUMP(WaterLv1, WaterLv2);
+
+      Serial.println("----P1 Done ----");
+      delay(500);
+    }
+
+    // Move To P2
+    if (SwitchOnOff > 0 && (WaterLv3 > 0 || WaterLv4 > 0)) {
+
+      Switch_lock();
+      CurrentPosition = P2 - CurrentPosition;
+      Serial.print("Move To ");
+      Serial.print(" -- P2 -- ");
+      Serial.println(CurrentPosition);
+      delay(500);
+      FW(CurrentPosition);
+
+      delay(500);
+      CurrentPosition = P2;
+      OPENPUMP(WaterLv3, WaterLv4);
+
+      Serial.println("----P2 Done ----");
+      delay(500);
+    }
+    // Move To P3
+    if (SwitchOnOff > 0 && (WaterLv5 > 0 || WaterLv6 > 0)) {
+
+      Switch_lock();
+      CurrentPosition = P3 - CurrentPosition;
+      Serial.print("Move To ");
+      Serial.print(" -- P3 -- ");
+      Serial.println(CurrentPosition);
+      delay(500);
+      FW(CurrentPosition);
+      delay(500);
+      CurrentPosition = P3;
+
+      OPENPUMP(WaterLv5, WaterLv6);
+
+      Serial.println("----P3 Done ----");
+      delay(500);
+    }
+    // Move To P4
+    if (SwitchOnOff > 0 && (WaterLv7 > 0 || WaterLv8 > 0)) {
+
+      Switch_lock();
+      CurrentPosition = P4 - CurrentPosition;
+      Serial.print("Move To ");
+      Serial.print(" -- P4 -- ");
+      Serial.println(CurrentPosition);
+      delay(500);
+      FW(CurrentPosition);
+
+      delay(500);
+      CurrentPosition = P4;
+      OPENPUMP(WaterLv7, WaterLv8);
+
+      Serial.println("----P4 Done ----");
+      delay(500);
+    }
+    // Move To P5
+    if (SwitchOnOff > 0 && (WaterLv9 > 0 || WaterLv10 > 0)) {
+
+      Switch_lock();
+      CurrentPosition = P5 - CurrentPosition;
+      Serial.print("Move To ");
+      Serial.print(" -- P5 -- ");
+      Serial.println(CurrentPosition);
+      delay(500);
+      FW(CurrentPosition);
+
+      delay(500);
+      CurrentPosition = P5;
+      OPENPUMP(WaterLv9, WaterLv10);
+
+      Serial.println("----P5 Done ----");
+      delay(500);
+    }
+    Switch_Unlock();
+    Reset();
+    Serial.println(" ------------ END ------------ ");
+  }
+}
+
+// Open Pump   " x = time of pump1 , y= time of pump2 "
+void OPENPUMP(int x, int y) {
+  x = x * 8000;
+  y = y * 8000;
+
+  //PUMP ON
+  if (x > 0) {
+    Serial.println(" PUMP1 OPEN ");
+    digitalWrite(pumpPIN1, LOW);
+  }
+  if (y > 0) {
+    Serial.println(" PUMP2 OPEN ");
+    digitalWrite(pumpPIN2, LOW);
+  }
+
+  // PUMP OFF
+  if (x > y) {
+    delay(y);
+    Serial.println("xxx PUMP2 CLOSE xxx");
+    digitalWrite(pumpPIN2, HIGH);
+    delay(x - y);
+    Serial.println("xxx PUMP1 CLOSE xxx");
+    digitalWrite(pumpPIN1, HIGH);
+
+  } else if (y > x) {
+    delay(x);
+    Serial.println("xxx PUMP1 CLOSE xxx");
+    digitalWrite(pumpPIN1, HIGH);
+    delay(y - x);
+    Serial.println("xxx PUMP2 CLOSE xxx");
+    digitalWrite(pumpPIN2, HIGH);
+  } else {
+    delay(x);
+    Serial.println("xxx PUMP1 CLOSE xxx");
+    digitalWrite(pumpPIN1, HIGH);
+    Serial.println("xxx PUMP2 CLOSE xxx");
+    digitalWrite(pumpPIN2, HIGH);
+  }
+}
+
+// Step Move " x = distance "
+void FW(int x) {
+  Serial.println(" ---- FW ---- ");
+  for (int i = 0; i < (x * 50); i++) {
+    //digitalWrite(eMA, LOW);
+    digitalWrite(dIR, HIGH);
+    digitalWrite(pUL, HIGH);
+
+    delay(1);
+    digitalWrite(pUL, LOW);
+  }
+  Serial.println(" ---- END FW ---- ");
+}
+// Step Move " x = distance "
+void BW(int x) {
+  Serial.println(" ---- BW ---- ");
+  for (int i = 0; i < (x * 50); i++) {
+    //digitalWrite(eMA, LOW);
+    digitalWrite(dIR, LOW);
+    digitalWrite(pUL, HIGH);
+
+    delay(1);
+    digitalWrite(pUL, LOW);
+  }
+  Serial.println(" ---- END BW ---- ");
+}
+
+void Switch_lock() {
+  Blynk.setProperty(V1, "isDisabled", true);
+  Blynk.setProperty(V101, "isDisabled", true);
+  Blynk.setProperty(V102, "isDisabled", true);
+  Blynk.setProperty(V103, "isDisabled", true);
+  Blynk.setProperty(V104, "isDisabled", true);
+  Blynk.setProperty(V105, "isDisabled", true);
+  Blynk.setProperty(V106, "isDisabled", true);
+  Blynk.setProperty(V107, "isDisabled", true);
+  Blynk.setProperty(V108, "isDisabled", true);
+  Blynk.setProperty(V109, "isDisabled", true);
+  Blynk.setProperty(V110, "isDisabled", true);
+}
+
+void Switch_Unlock() {
+  Blynk.setProperty(V1, "isDisabled", false);
+  Blynk.setProperty(V101, "isDisabled", false);
+  Blynk.setProperty(V102, "isDisabled", false);
+  Blynk.setProperty(V103, "isDisabled", false);
+  Blynk.setProperty(V104, "isDisabled", false);
+  Blynk.setProperty(V105, "isDisabled", false);
+  Blynk.setProperty(V106, "isDisabled", false);
+  Blynk.setProperty(V107, "isDisabled", false);
+  Blynk.setProperty(V108, "isDisabled", false);
+  Blynk.setProperty(V109, "isDisabled", false);
+  Blynk.setProperty(V110, "isDisabled", false);
+}
+
+void Reset() {
+  Blynk.virtualWrite(V101, 0);
+  Blynk.virtualWrite(V102, 0);
+  Blynk.virtualWrite(V103, 0);
+  Blynk.virtualWrite(V104, 0);
+  Blynk.virtualWrite(V105, 0);
+  Blynk.virtualWrite(V106, 0);
+  Blynk.virtualWrite(V107, 0);
+  Blynk.virtualWrite(V108, 0);
+  Blynk.virtualWrite(V109, 0);
+  Blynk.virtualWrite(V110, 0);
+
+  WaterLv1 = 0;
+  WaterLv2 = 0;
+  WaterLv3 = 0;
+  WaterLv4 = 0;
+  WaterLv5 = 0;
+  WaterLv6 = 0;
+  WaterLv7 = 0;
+  WaterLv8 = 0;
+  WaterLv9 = 0;
+  WaterLv10 = 0;
+
+  Serial.println(" ---- Reset ---- ");
+  if (SwitchOnOff > 0 || CurrentPosition > 0) {
+    BW(CurrentPosition);
+    delay(100);
+    CurrentPosition = 0;
+    SwitchOnOff=0;
+  }
+}
+
+//----- Blynk Switch
+BLYNK_WRITE(V1) {
+  SwitchOnOff = 1;
+  Serial.print(SwitchOnOff);
+  Serial.println(" ------------ Start ------------ ");
+
+}
+
+BLYNK_WRITE(V2) {
+  Reset();
+  delay(1000);
+}
+
+BLYNK_WRITE(V0) {
+}
+
+
+//------ Blynk Slider
+BLYNK_WRITE(V101) {
+  WaterLv1 = param.asInt();
+  Serial.print("Water 1 ==>>");
+  Serial.println(WaterLv1);
+}
+BLYNK_WRITE(V102) {
+  WaterLv2 = param.asInt();
+  Serial.print("Water 2 ==>>");
+  Serial.println(WaterLv2);
+}
+BLYNK_WRITE(V103) {
+  WaterLv3 = param.asInt();
+  Serial.print("Water 3 ==>>");
+  Serial.println(WaterLv3);
+}
+BLYNK_WRITE(V104) {
+  WaterLv4 = param.asInt();
+  Serial.print("Water 4 ==>>");
+  Serial.println(WaterLv4);
+}
+BLYNK_WRITE(V105) {
+  WaterLv5 = param.asInt();
+  Serial.print("Water 5 ==>>");
+  Serial.println(WaterLv5);
+}
+BLYNK_WRITE(V106) {
+  WaterLv6 = param.asInt();
+  Serial.print("Water 6 ==>>");
+  Serial.println(WaterLv6);
+}
+BLYNK_WRITE(V107) {
+  WaterLv7 = param.asInt();
+  Serial.print("Water 7 ==>>");
+  Serial.println(WaterLv7);
+}
+BLYNK_WRITE(V108) {
+  WaterLv8 = param.asInt();
+  Serial.print("Water 8 ==>>");
+  Serial.println(WaterLv8);
+}
+BLYNK_WRITE(V109) {
+  WaterLv9 = param.asInt();
+  Serial.print("Water 9 ==>>");
+  Serial.println(WaterLv9);
+}
+BLYNK_WRITE(V110) {
+  WaterLv10 = param.asInt();
+  Serial.print("Water 10 ==>>");
+  Serial.println(WaterLv10);
+}
