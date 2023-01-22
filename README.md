@@ -1,3 +1,5 @@
+esp8266_WaterThePlants V. 1.0
+
 -- Device --
 + esp8266 V3 + NodeMCU V.1.0
 + 
