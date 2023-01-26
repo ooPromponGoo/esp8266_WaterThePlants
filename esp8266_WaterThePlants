@@ -1,13 +1,16 @@
+//Update 26/01/2023
 
 #define BLYNK_PRINT Serial
 #include <ESP8266WiFi.h>
 #include <BlynkSimpleEsp8266.h>
 
-#define pUL D1
-#define dIR D2
-#define eMA D5
+#define pUL D2
+#define dIR D5
+//#define eMA D5
 #define pumpPIN1 D6
 #define pumpPIN2 D7
+
+WidgetLCD lcd(V20);
 
 #define BLYNK_AUTH_TOKEN "rulFzUePQILZM2YPX0VhE2tz40XaPOzv"
 
@@ -17,11 +20,11 @@ char pass[] = "PANNA2932";
 
 // Distance (mm)
 int P0 = 0;
-int P1 = 60;
-int P2 = 120;
-int P3 = 179;
-int P4 = 239;
-int P5 = 300;
+int P1 = 63;
+int P2 = 125;
+int P3 = 193;
+int P4 = 255;
+int P5 = 320;
 
 int SwitchOnOff;
 
@@ -37,10 +40,12 @@ int WaterLv8;
 int WaterLv9;
 int WaterLv10;
 
+
+
 void setup() {
 
   // put your setup code here, to run once:
-
+  lcd.clear();
 
   Serial.begin(19200);
   Serial.println(" Hello OraCle ");
@@ -58,11 +63,39 @@ void setup() {
   digitalWrite(pumpPIN2, HIGH);
 
   Reset();
+  lcd.clear();
+  lcd.print(3, 0, "Hi Oracle");
+  lcd.print(3, 1, "--Ready!!--");
 }
 
 void loop() {
   Blynk.run();
   if (SwitchOnOff == 1) {
+
+    if (SwitchOnOff > 0) {
+      // Move To P0
+
+      Switch_lock();
+      CurrentPosition = P0 - CurrentPosition;
+      Serial.print("Move To ");
+      Serial.print(" -- P0 -- ");
+      Serial.println(CurrentPosition);
+
+      lcd.clear();
+      lcd.print(3, 0, "-- P0 --");
+      lcd.print(3, 1, "Clear Pump");
+
+      delay(500);
+      FW(CurrentPosition);
+
+      delay(500);
+      CurrentPosition = P0;
+      OPENPUMP(2, 2);
+
+      Serial.println("----P0 Done ----");
+      delay(500);
+    }
+
     if (SwitchOnOff > 0 && (WaterLv1 > 0 || WaterLv2 > 0)) {
       // Move To P1
 
@@ -71,11 +104,23 @@ void loop() {
       Serial.print("Move To ");
       Serial.print(" -- P1 -- ");
       Serial.println(CurrentPosition);
+
+      lcd.clear();
+      lcd.print(3, 0, "-- P1 --");
+
       delay(500);
+
+      lcd.print(3, 1, "Move To P1");
+
       FW(CurrentPosition);
+
       delay(500);
       CurrentPosition = P1;
+
+      lcd.print(3, 1, "PUMP RUN");
+
       OPENPUMP(WaterLv1, WaterLv2);
+
 
       Serial.println("----P1 Done ----");
       delay(500);
@@ -89,11 +134,22 @@ void loop() {
       Serial.print("Move To ");
       Serial.print(" -- P2 -- ");
       Serial.println(CurrentPosition);
+
+      lcd.clear();
+      lcd.print(3, 0, "-- P2 --");
+
       delay(500);
+
+      lcd.print(3, 1, "Move To P2");
+
       FW(CurrentPosition);
+
 
       delay(500);
       CurrentPosition = P2;
+
+      lcd.print(3, 1, "PUMP RUN");
+
       OPENPUMP(WaterLv3, WaterLv4);
 
       Serial.println("----P2 Done ----");
@@ -107,12 +163,23 @@ void loop() {
       Serial.print("Move To ");
       Serial.print(" -- P3 -- ");
       Serial.println(CurrentPosition);
+
+      lcd.clear();
+      lcd.print(3, 0, "-- P3 --");
+
       delay(500);
+
+      lcd.print(3, 1, "Move To P3");
       FW(CurrentPosition);
+
+
+
       delay(500);
       CurrentPosition = P3;
-
+      lcd.print(3, 1, "PUMP RUN");
       OPENPUMP(WaterLv5, WaterLv6);
+
+
 
       Serial.println("----P3 Done ----");
       delay(500);
@@ -125,12 +192,23 @@ void loop() {
       Serial.print("Move To ");
       Serial.print(" -- P4 -- ");
       Serial.println(CurrentPosition);
+
+      lcd.clear();
+      lcd.print(3, 0, "-- P4 --");
+
       delay(500);
+      lcd.print(3, 1, "Move To P4");
+
       FW(CurrentPosition);
+
 
       delay(500);
       CurrentPosition = P4;
+
+      lcd.print(3, 1, "PUMP RUN");
+
       OPENPUMP(WaterLv7, WaterLv8);
+
 
       Serial.println("----P4 Done ----");
       delay(500);
@@ -143,17 +221,26 @@ void loop() {
       Serial.print("Move To ");
       Serial.print(" -- P5 -- ");
       Serial.println(CurrentPosition);
+
+      lcd.clear();
+      lcd.print(3, 0, "-- P5 --");
+
       delay(500);
+      lcd.print(3, 1, "Move To P5");
       FW(CurrentPosition);
+
+      
 
       delay(500);
       CurrentPosition = P5;
+      lcd.print(3, 1, "PUMP RUN");
       OPENPUMP(WaterLv9, WaterLv10);
+
+      
 
       Serial.println("----P5 Done ----");
       delay(500);
     }
-    Switch_Unlock();
     Reset();
     Serial.println(" ------------ END ------------ ");
   }
@@ -202,7 +289,7 @@ void OPENPUMP(int x, int y) {
 // Step Move " x = distance "
 void FW(int x) {
   Serial.println(" ---- FW ---- ");
-  for (int i = 0; i < (x * 50); i++) {
+  for (int i = 0; i < (x * 100); i++) {
     //digitalWrite(eMA, LOW);
     digitalWrite(dIR, HIGH);
     digitalWrite(pUL, HIGH);
@@ -215,7 +302,7 @@ void FW(int x) {
 // Step Move " x = distance "
 void BW(int x) {
   Serial.println(" ---- BW ---- ");
-  for (int i = 0; i < (x * 50); i++) {
+  for (int i = 0; i < (x * 100); i++) {
     //digitalWrite(eMA, LOW);
     digitalWrite(dIR, LOW);
     digitalWrite(pUL, HIGH);
@@ -276,22 +363,31 @@ void Reset() {
   WaterLv8 = 0;
   WaterLv9 = 0;
   WaterLv10 = 0;
+  
 
   Serial.println(" ---- Reset ---- ");
   if (SwitchOnOff > 0 || CurrentPosition > 0) {
+    Switch_lock();
+    lcd.clear();
+    lcd.print(3, 0, "Reset Mode");
+    lcd.print(3, 1, "BW > ");
+    lcd.print(8, 1, CurrentPosition);
     BW(CurrentPosition);
     delay(100);
     CurrentPosition = 0;
-    SwitchOnOff=0;
+    SwitchOnOff = 0;
   }
-}
 
+  lcd.clear();
+  lcd.print(3, 0, "Hi Oracle");
+  lcd.print(3, 1, "--Ready!!--");
+  Switch_Unlock();
+}
 //----- Blynk Switch
 BLYNK_WRITE(V1) {
   SwitchOnOff = 1;
   Serial.print(SwitchOnOff);
   Serial.println(" ------------ Start ------------ ");
-
 }
 
 BLYNK_WRITE(V2) {
